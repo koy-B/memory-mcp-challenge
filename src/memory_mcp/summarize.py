@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from memory_mcp.context_metrics import is_filler_content
 from memory_mcp.storage import MemoryEntry
 
 _NOISE_TAG = "noise"
@@ -11,7 +12,7 @@ _FACT_TAG = "fact"
 
 
 def _importance(entry: MemoryEntry) -> float:
-    if _NOISE_TAG in entry.tags:
+    if _NOISE_TAG in entry.tags or is_filler_content(entry.content):
         return -1e9
 
     score = 0.0
@@ -62,11 +63,11 @@ def _compact_fact(content: str) -> str:
     return text[:60].strip()
 
 
-MAX_SUMMARY_ENTRIES = 4
+MAX_SUMMARY_ENTRIES = 3
 
 
 def _is_critical(entry: MemoryEntry) -> bool:
-    if _NOISE_TAG in entry.tags:
+    if _NOISE_TAG in entry.tags or is_filler_content(entry.content):
         return False
     content = entry.content.lower()
     return bool(

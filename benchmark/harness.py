@@ -70,7 +70,13 @@ def simulate_memory_conversation(turns: list[dict], session: str = "benchmark") 
             session=session,
             turn=turn["turn"],
         )
-        tokens = per_turn_context_tokens(tools, session, content)
+        tokens = per_turn_context_tokens(
+            tools,
+            session,
+            content,
+            noise_turn=turn["turn"] > 10,
+            turn=turn["turn"],
+        )
         total_context_tokens += tokens
         per_turn.append(tokens)
 

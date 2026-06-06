@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from memory_mcp.context_metrics import is_filler_content
 from memory_mcp.live import publish_live, record_call
 from memory_mcp.stats import count_tokens, get_stats
 from memory_mcp.storage import MemoryStore
@@ -29,7 +30,9 @@ class MemoryTools:
         stats.add_input(count_tokens(content))
 
         stored = content
-        if tags and "noise" in tags and turn > 0:
+        if turn > 0 and (
+            (tags and "noise" in tags) or is_filler_content(content)
+        ):
             stored = f"{_role_from_content(content)}:n{turn}"
 
         memory_id = self.store.store(content=stored, tags=tags, session=session, turn=turn)
@@ -39,6 +42,10 @@ class MemoryTools:
             detail=f"id={memory_id}",
             tools=self,
             content=content,
+            noise_turn=bool(
+                (tags and "noise" in tags) or is_filler_content(content)
+            ),
+            turn=turn,
         )
         return {"id": memory_id, "stored": True, "tags": tags or []}
 

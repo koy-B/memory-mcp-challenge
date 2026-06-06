@@ -45,13 +45,29 @@ def _naive_turn_tokens(history: list[dict]) -> int:
     return count_tokens(context)
 
 
-def _memory_turn_tokens(tools: MemoryTools, session: str, query: str) -> int:
+def _memory_turn_tokens(
+    tools: MemoryTools,
+    session: str,
+    query: str,
+    *,
+    noise_turn: bool = False,
+    turn: int = 0,
+) -> int:
     from memory_mcp.context_metrics import per_turn_context_tokens
 
-    return per_turn_context_tokens(tools, session, query)
+    return per_turn_context_tokens(
+        tools, session, query, noise_turn=noise_turn, turn=turn
+    )
 
 
-def record_turn(tools: MemoryTools, session: str, content: str) -> None:
+def record_turn(
+    tools: MemoryTools,
+    session: str,
+    content: str,
+    *,
+    noise_turn: bool = False,
+    turn: int = 0,
+) -> None:
     """Enregistre un tour conversationnel et calcule l'économie live."""
     global _naive_total, _memory_context_total
 
@@ -59,7 +75,9 @@ def record_turn(tools: MemoryTools, session: str, content: str) -> None:
     _history.append({"role": role, "content": body})
 
     naive_turn = _naive_turn_tokens(_history)
-    memory_turn = _memory_turn_tokens(tools, session, body)
+    memory_turn = _memory_turn_tokens(
+        tools, session, body, noise_turn=noise_turn, turn=turn
+    )
 
     _naive_total += naive_turn
     _memory_context_total += memory_turn
@@ -92,12 +110,14 @@ def record_call(
     *,
     tools: MemoryTools | None = None,
     content: str = "",
+    noise_turn: bool = False,
+    turn: int = 0,
 ) -> None:
     """Enregistre un appel outil et publie l'état live."""
     global _last_total
 
     if tool == "memory_store" and tools is not None and content:
-        record_turn(tools, session, content)
+        record_turn(tools, session, content, noise_turn=noise_turn, turn=turn)
 
     stats = get_stats()
     current_total = stats.total()
