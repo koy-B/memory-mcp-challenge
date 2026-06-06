@@ -10,6 +10,22 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div class="ambient" aria-hidden="true">
+    <span class="ambient-orb ambient-orb--violet"></span>
+    <span class="ambient-orb ambient-orb--mint"></span>
+    <span class="ambient-orb ambient-orb--rose"></span>
+  </div>
+
+  <svg width="0" height="0" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="gauge-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#8b7dff" />
+        <stop offset="55%" stop-color="#3dffb8" />
+        <stop offset="100%" stop-color="#5eead4" />
+      </linearGradient>
+    </defs>
+  </svg>
+
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand">
@@ -103,14 +119,15 @@
 
       <section class="panel active" id="panel-overview">
         <div class="hero-grid">
-          <article class="metric-card metric-card--accent">
+          <article class="metric-card metric-card--accent metric-card--spotlight">
+            <div class="metric-spark" aria-hidden="true"></div>
             <div class="metric-label">Économie tokens</div>
-            <div class="metric-value accent" id="kpi-savings">—</div>
+            <div class="metric-value accent gradient-text" id="kpi-savings">—</div>
             <div class="metric-foot" id="savings-label">—</div>
           </article>
           <article class="metric-card metric-card--memory">
             <div class="metric-label">Tokens économisés</div>
-            <div class="metric-value memory" id="kpi-tokens">—</div>
+            <div class="metric-value memory gradient-text-mint" id="kpi-tokens">—</div>
             <div class="metric-foot" id="tokens-saved-label">—</div>
           </article>
           <article class="metric-card metric-card--accent">
@@ -120,13 +137,13 @@
           </article>
           <article class="metric-card metric-card--memory">
             <div class="metric-label">Score qualité</div>
-            <div class="metric-value memory" id="kpi-quality">—</div>
+            <div class="metric-value memory gradient-text-mint" id="kpi-quality">—</div>
             <div class="metric-foot">Questions pièges réussies</div>
           </article>
         </div>
 
         <div class="grid-2">
-          <article class="card">
+          <article class="card card-glass card-chart">
             <div class="card-head">
               <h3>Consommation par tour</h3>
               <div class="legend">
@@ -140,7 +157,7 @@
             </div>
           </article>
 
-          <article class="card">
+          <article class="card card-glass card-gauge">
             <h3>Score qualité global</h3>
             <div class="gauge">
               <svg width="180" height="180" viewBox="0 0 180 180" aria-hidden="true">
@@ -203,7 +220,7 @@
       </section>
 
       <section class="panel" id="panel-live">
-        <article class="card savings-live-banner">
+        <article class="card savings-live-banner card-glass">
           <div class="savings-live-head">
             <div>
               <h3>Économie live</h3>

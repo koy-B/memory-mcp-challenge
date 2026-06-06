@@ -250,7 +250,7 @@ function drawGauge(score) {
   const offset = circumference - (score / 100) * circumference;
   circle.style.strokeDasharray = `${circumference}`;
   circle.style.strokeDashoffset = `${offset}`;
-  circle.style.stroke = score >= 80 ? CHART.memory : score >= 50 ? CHART.accent : CHART.naive;
+  circle.style.stroke = score >= 50 ? "url(#gauge-gradient)" : CHART.naive;
   value.textContent = `${Math.round(score)}%`;
 }
 
