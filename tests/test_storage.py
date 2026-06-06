@@ -1,14 +1,24 @@
+"""Tests stockage — recherche sémantique réelle requise."""
+
 from memory_mcp.storage import MemoryStore
+from memory_mcp.validation import top1_contains
 
 
-def test_store_and_search():
+def test_store_and_search_paraphrase():
+    """Le bag-of-words naïf échoue sur cette paraphrase."""
     store = MemoryStore()
-    store.store("Marie Dupont est cliente premium", tags=["client"], session="s1", turn=1)
-    store.store("Contrat CTR-2024-8847", tags=["contrat"], session="s1", turn=3)
+    store.store(
+        "La cliente s'appelle Marie Dupont, statut premium",
+        tags=["client"],
+        session="s1",
+        turn=1,
+    )
+    store.store("Référence dossier CTR-2024-8847", tags=["contrat"], session="s1", turn=3)
+    store.store("Bruit: recette gâteau chocolat sans lactose", session="s1", turn=99)
 
-    hits = store.search("nom du client", top_k=2, session="s1")
-    assert len(hits) >= 1
-    assert "Marie" in hits[0].content
+    hits = store.search("identité de l'interlocutrice", top_k=1, session="s1")
+    results = [{"content": h.content} for h in hits]
+    assert top1_contains("Marie Dupont", results)
 
 
 def test_list_session_ordered():

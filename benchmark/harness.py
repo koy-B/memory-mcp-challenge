@@ -6,12 +6,12 @@ import json
 from pathlib import Path
 
 from benchmark.naive import simulate_naive_conversation
+from benchmark.scoring import compression_ratio, context_growth_factor, per_turn_context_tokens
 from memory_mcp.stats import reset_stats
 from memory_mcp.tools import MemoryTools
 
 ROOT = Path(__file__).parent
 CONVERSATION_PATH = ROOT / "conversation.json"
-TRAP_PATH = ROOT / "trap_questions.json"
 
 
 def load_json(path: Path) -> list | dict:
@@ -36,21 +36,12 @@ def generate_long_conversation(base_turns: list[dict], target_turns: int = 40) -
     return turns
 
 
-def _context_tokens(tools: MemoryTools, session: str, query: str) -> int:
-    """Tokens réellement envoyés au LLM : résumé + résultats de recherche."""
-    from memory_mcp.stats import count_tokens
-
-    summary = tools.memory_summarize(session=session)
-    search = tools.memory_search(query=query, top_k=3, session=session)
-    context = summary["summary"] + "\n" + "\n".join(r["content"] for r in search["results"])
-    return count_tokens(context)
-
-
 def simulate_memory_conversation(turns: list[dict], session: str = "benchmark") -> dict:
     """Simule une conversation avec le serveur mémoire."""
     reset_stats()
     tools = MemoryTools()
     total_context_tokens = 0
+    per_turn: list[int] = []
 
     for turn in turns:
         role = turn["role"]
@@ -61,57 +52,27 @@ def simulate_memory_conversation(turns: list[dict], session: str = "benchmark") 
             session=session,
             turn=turn["turn"],
         )
-        # Seul le contexte récupéré (résumé + search) part vers le LLM
-        total_context_tokens += _context_tokens(tools, session, content)
+        tokens = per_turn_context_tokens(tools, session, content)
+        total_context_tokens += tokens
+        per_turn.append(tokens)
 
     stats = tools.memory_stats()
     return {
         "mode": "memory",
         "turns": len(turns),
         "total_tokens": total_context_tokens,
+        "growth_factor": context_growth_factor(per_turn) if per_turn else 0.0,
+        "compression_ratio": compression_ratio(tools, session),
         "stats": stats,
     }
 
 
-def evaluate_trap_questions(tools: MemoryTools, session: str = "benchmark") -> dict:
-    """Évalue les questions pièges (axe qualité)."""
-    traps = load_json(TRAP_PATH)
-    passed = 0
-    details = []
-
-    for trap in traps:
-        result = tools.memory_search(query=trap["question"], top_k=3, session=session)
-        contents = " ".join(r["content"] for r in result["results"])
-        ok = trap["expected"].lower() in contents.lower()
-        if ok:
-            passed += 1
-        details.append({"question": trap["question"], "expected": trap["expected"], "passed": ok})
-
-    return {
-        "total": len(traps),
-        "passed": passed,
-        "score_pct": round(100 * passed / len(traps), 1) if traps else 0.0,
-        "details": details,
-    }
-
-
-def run_benchmark(turn_count: int = 40) -> dict:
+def run_benchmark(turn_count: int = 50) -> dict:
     """Lance le benchmark complet et retourne le rapport."""
     base = load_json(CONVERSATION_PATH)
     turns = generate_long_conversation(base, target_turns=turn_count)
     naive = simulate_naive_conversation(turns)
     memory = simulate_memory_conversation(turns)
-
-    reset_stats()
-    tools = MemoryTools()
-    for turn in turns:
-        tools.memory_store(
-            content=f"{turn['role']}: {turn['content']}",
-            tags=[turn["role"]],
-            session="benchmark",
-            turn=turn["turn"],
-        )
-    quality = evaluate_trap_questions(tools, session="benchmark")
 
     savings_pct = 0.0
     if naive["total_tokens"] > 0:
@@ -121,7 +82,7 @@ def run_benchmark(turn_count: int = 40) -> dict:
         "naive": naive,
         "memory": memory,
         "savings_pct": savings_pct,
-        "quality": quality,
+        "note": "La validation qualité (questions pièges) est uniquement en CI finale.",
     }
 
 

@@ -1,8 +1,20 @@
-# Memory MCP Challenge
+# Memory MCP Challenge — FINALE
 
 **Hackathon INTELO2026** — Serveur MCP de mémoire avec benchmark chiffré tokens/qualité.
 
 > Construisez un serveur MCP qui prouve qu'on peut réduire drastiquement les tokens d'un agent conversationnel **sans le rendre amnésique**.
+
+## Finale — règles importantes
+
+Le squelette fourni **ne suffit pas** pour merger une PR :
+
+| Job CI | Passent avec le squelette ? |
+|--------|----------------------------|
+| `lint` + `smoke` | Oui |
+| `regression` | **Non** — paraphrases, bruit, compression |
+| `finale-eval` | **Non** — tests cachés (dépôt privé) |
+
+Les tests cachés ne sont **pas dans ce dépôt**. Même avec l'IA, il faut une vraie recherche sémantique et une vraie compression.
 
 ## Contexte
 
@@ -10,8 +22,6 @@
 |------|-------------|-------------|
 | **Naïf** | Renvoie tout l'historique à chaque tour | Croissance quadratique |
 | **Mémoire MCP** | Stocke, recherche, résume | Quasi plat |
-
-Le benchmark mesure les deux axes : **coût** (tokens/€) et **qualité** (questions pièges).
 
 ## Structure
 
@@ -21,55 +31,34 @@ memory-mcp-challenge/
 ├── benchmark/          # Harnais naïf vs mémoire
 ├── demo/               # Agent de démo (stub)
 ├── dashboard/          # Visualisation benchmark
-├── tests/              # Tests unitaires + intégration
-└── .github/workflows/  # CI (lint + tests)
+├── tests/
+│   ├── test_smoke.py       # API OK
+│   └── test_regression.py  # Barre finale (dur)
+└── .github/workflows/  # CI multi-niveaux
 ```
 
 ## Installation
 
 ```bash
 python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# Linux/macOS
-source .venv/bin/activate
-
+.venv\Scripts\activate        # Windows
 pip install -e ".[dev]"
 ```
 
 ## Utilisation
 
-### Lancer les tests
-
 ```bash
-pytest -v
-```
+# Tests fumée (doivent passer)
+pytest tests/test_smoke.py -v
 
-### Linter
+# Tests régression (doivent passer pour merger)
+PYTHONPATH=src:. pytest tests/test_regression.py tests/test_storage.py tests/test_tools.py -v
 
-```bash
-ruff check src tests benchmark demo
-ruff format src tests benchmark demo
-```
-
-### Benchmark
-
-```bash
+# Benchmark
 python -m benchmark.harness
-```
 
-### Serveur MCP
-
-```bash
+# Serveur MCP
 memory-mcp
-# ou
-python -m memory_mcp.server
-```
-
-### Agent de démo
-
-```bash
-python demo/agent.py
 ```
 
 ## Les 4 outils MCP
@@ -77,20 +66,19 @@ python demo/agent.py
 | Outil | Description |
 |-------|-------------|
 | `memory_store(content, tags)` | Stocke un fragment de mémoire |
-| `memory_search(query, top_k)` | Recherche sémantique |
-| `memory_summarize(session)` | Résumé compressé de l'historique |
+| `memory_search(query, top_k)` | Recherche **sémantique** (paraphrases !) |
+| `memory_summarize(session)` | Résumé **compressé** conservant les faits |
 | `memory_stats()` | Tokens consommés |
 
-## CI
+## Critères de merge (PR)
 
-Chaque push/PR sur `main` ou `develop` déclenche :
-1. **Lint** — `ruff check` + `ruff format --check`
-2. **Tests** — `pytest` + smoke benchmark
+1. **Régression** : paraphrases top-1, isolation sessions, compression ≤ 25 %, économie ≥ 60 % sur 50 tours
+2. **Finale cachée** : économie ≥ 70 %, seed dynamique, anti-hardcoding
 
-## Pitch complet
+## Organisateurs
 
-Voir [PITCH.md](PITCH.md) pour le one-pager destiné au jury / proposition de sujet.
+Voir [ADMIN.md](ADMIN.md) pour configurer le dépôt privé et les secrets CI.
 
-## Licence
+## Pitch
 
-Projet hackathon INTELO2026 — usage libre dans le cadre de l'événement.
+Voir [PITCH.md](PITCH.md).

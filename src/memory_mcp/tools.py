@@ -28,7 +28,16 @@ class MemoryTools:
         stats.add_input(count_tokens(query))
 
         hits = self.store.search(query=query, top_k=top_k, session=session)
-        results = [{"id": h.id, "content": h.content, "tags": h.tags, "turn": h.turn} for h in hits]
+        results = [
+            {
+                "id": h.id,
+                "content": h.content,
+                "tags": h.tags,
+                "turn": h.turn,
+                "score": round(h.score, 6),
+            }
+            for h in hits
+        ]
         stats.add_output(count_tokens(str(results)))
         return {"results": results, "count": len(results)}
 

@@ -49,13 +49,17 @@ Construire un **serveur MCP de mémoire** qui prouve, chiffres à l'appui, qu'on
 3. Graphe final + encadré « économie : X tokens = Y € »
 4. Poser une question piège → l'agent répond juste via `memory_search`
 
-## CI / qualité code
+## CI / qualité code (FINALE)
 
-Ce dépôt inclut une **CI GitHub Actions** qui doit passer :
-- `ruff check` + `ruff format --check`
-- `pytest` (tests unitaires + smoke benchmark)
+CI en **3 niveaux** — le squelette ne merge pas :
 
-Les PR qui cassent la CI ne sont pas mergées.
+| Niveau | Contenu |
+|--------|---------|
+| Smoke | API + intégrité |
+| Régression (public) | Paraphrases, bruit, compression, ≥ 60 % économie |
+| **Finale (caché)** | Dépôt privé, seed secret, ≥ 70 % économie, anti-triche |
+
+Les équipes n'ont **pas accès** aux tests cachés. Impossible de « finir en 10 minutes avec l'IA ».
 
 ## Getting started
 

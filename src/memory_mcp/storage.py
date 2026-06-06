@@ -9,6 +9,46 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
+MIN_SIMILARITY = 1e-9
+
+_STOPWORDS = frozenset(
+    {
+        "a",
+        "au",
+        "aux",
+        "ce",
+        "ces",
+        "de",
+        "des",
+        "du",
+        "en",
+        "est",
+        "et",
+        "il",
+        "je",
+        "la",
+        "le",
+        "les",
+        "ma",
+        "mon",
+        "ne",
+        "on",
+        "ou",
+        "pas",
+        "pour",
+        "que",
+        "qui",
+        "sa",
+        "se",
+        "son",
+        "sur",
+        "un",
+        "une",
+        "vos",
+        "votre",
+    }
+)
+
 
 @dataclass
 class MemoryEntry:
@@ -17,11 +57,12 @@ class MemoryEntry:
     tags: list[str]
     session: str
     turn: int
+    score: float = 0.0
 
 
 def _tokenize(text: str) -> dict[str, float]:
     """Bag-of-words normalisé — remplacer par un vrai modèle d'embeddings."""
-    words = re.findall(r"\w+", text.lower())
+    words = [w for w in re.findall(r"\w+", text.lower()) if w not in _STOPWORDS and len(w) > 2]
     if not words:
         return {}
     freq: dict[str, float] = {}
@@ -86,8 +127,10 @@ class MemoryStore:
             scored.append((score, row))
 
         scored.sort(key=lambda x: x[0], reverse=True)
+        scored = [(s, row) for s, row in scored if s > MIN_SIMILARITY]
+
         results: list[MemoryEntry] = []
-        for _, row in scored[:top_k]:
+        for score, row in scored[:top_k]:
             results.append(
                 MemoryEntry(
                     id=row["id"],
@@ -95,6 +138,7 @@ class MemoryStore:
                     tags=json.loads(row["tags"]),
                     session=row["session"],
                     turn=row["turn"],
+                    score=score,
                 )
             )
         return results

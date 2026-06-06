@@ -1,7 +1,0 @@
-[
-  {"question": "Quel est le nom du client ?", "expected": "Marie Dupont", "source_turn": 1},
-  {"question": "Quel est le numéro de contrat ?", "expected": "CTR-2024-8847", "source_turn": 3},
-  {"question": "Quel montant était attendu sur la facture de mars ?", "expected": "99,90", "source_turn": 5},
-  {"question": "Quelle date pour le bug mobile ?", "expected": "12 février", "source_turn": 7},
-  {"question": "Quel est l'email du client ?", "expected": "marie.dupont@email.fr", "source_turn": 9}
-]

@@ -25,6 +25,9 @@ env/
 benchmark/results/
 *.json.bak
 
+# Dépôt privé eval (ne pas publier dans le repo public)
+eval-private/
+
 # OS
 .DS_Store
 Thumbs.db
