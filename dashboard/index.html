@@ -67,8 +67,8 @@
         <button class="btn btn-primary" id="live-demo" type="button">Lancer la démo live</button>
         <button class="btn" id="reload" type="button">Recharger le rapport</button>
         <button class="btn" id="export-json" type="button">Exporter JSON</button>
-        <label class="btn" for="import-json">Importer JSON</label>
-        <input id="import-json" type="file" accept="application/json" hidden />
+        <label class="btn" for="import-json">Importer test JSON</label>
+        <input id="import-json" type="file" accept=".json,application/json" hidden />
         <button class="btn" id="theme-toggle" type="button">Mode clair</button>
       </div>
 
@@ -79,6 +79,17 @@
     </aside>
 
     <main class="main">
+      <div class="import-demo-banner" id="import-demo-banner" hidden>
+        <div class="import-demo-banner__main">
+          <span class="import-demo-badge" id="import-demo-badge">Démo importée</span>
+          <div class="import-demo-banner__text">
+            <strong id="import-demo-title">Fichier de démonstration</strong>
+            <span id="import-demo-meta">Les métriques affichées proviennent de ce fichier JSON importé.</span>
+          </div>
+        </div>
+        <button class="btn import-demo-clear" id="import-demo-clear" type="button">Revenir au rapport local</button>
+      </div>
+
       <header class="topbar">
         <div>
           <div class="topbar-eyebrow" id="topbar-eyebrow">Benchmark</div>

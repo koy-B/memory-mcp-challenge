@@ -29,6 +29,7 @@ const state = {
   simRunning: false,
   livePollId: null,
   resizeTimer: null,
+  importSource: null,
 };
 
 function debounce(fn, ms = 150) {
@@ -232,7 +233,9 @@ function updateHero(data, animate = false) {
   drawGauge(q.score_pct || 0);
   renderTraps(q.details || []);
   document.getElementById("raw-json").textContent = JSON.stringify(data, null, 2);
-  document.getElementById("status-pill").textContent = `Rapport chargé · ${new Date().toLocaleTimeString("fr-FR")}`;
+  if (!state.importSource) {
+    setStatusPill(`Rapport chargé · ${new Date().toLocaleTimeString("fr-FR")}`);
+  }
 
   if (state.activePanel === "overview" || state.activePanel === "performance") {
     redrawChartsForPanel(state.activePanel);
@@ -761,8 +764,14 @@ async function loadReport(animate = false) {
     const res = await fetch(`${REPORT_URL}?t=${Date.now()}`);
     const data = await res.json();
     state.data = data;
+    if (!state.importSource) {
+      clearImportDemoBanner();
+    }
     updateHero(data, animate);
-    showToast("Rapport benchmark chargé");
+    if (!state.importSource) {
+      setStatusPill(`Rapport chargé · ${new Date().toLocaleTimeString("fr-FR")}`);
+    }
+    showToast(state.importSource ? "Rapport local actualisé" : "Rapport benchmark chargé");
   } catch {
     document.getElementById("raw-json").textContent =
       "Aucun rapport trouvé. Exécutez : python -m benchmark.harness";
@@ -783,18 +792,181 @@ function exportReport() {
   showToast("Export JSON téléchargé");
 }
 
+const IMPORT_MAX_BYTES = 5 * 1024 * 1024;
+
+function detectImportType(payload) {
+  if (!payload || typeof payload !== "object") return null;
+  if (
+    payload.naive &&
+    payload.memory &&
+    typeof payload.naive.total_tokens === "number" &&
+    typeof payload.memory.total_tokens === "number"
+  ) {
+    return "benchmark";
+  }
+  if (payload.savings && (payload.stats || payload.recent_activity)) {
+    return "live";
+  }
+  return null;
+}
+
+function normalizeBenchmarkReport(raw) {
+  const naive = raw.naive || {};
+  const memory = raw.memory || {};
+  const naiveTotal = Number(naive.total_tokens || 0);
+  const memoryTotal = Number(memory.total_tokens || 0);
+  const tokensSaved = Number(raw.tokens_saved ?? naiveTotal - memoryTotal);
+  let savingsPct = raw.savings_pct;
+  if (savingsPct == null && naiveTotal > 0) {
+    savingsPct = Math.round(100 * (1 - memoryTotal / naiveTotal) * 10) / 10;
+  }
+
+  return {
+    ...raw,
+    naive: {
+      cost_eur: 0,
+      ...naive,
+      per_turn_tokens: naive.per_turn_tokens || naive.tokens_per_turn || [],
+    },
+    memory: {
+      compression_ratio: 0,
+      growth_factor: 0,
+      turns: naive.turns || memory.turns || 0,
+      stats: {},
+      ...memory,
+      per_turn_tokens: memory.per_turn_tokens || [],
+    },
+    savings_pct: Number(savingsPct || 0),
+    tokens_saved: tokensSaved,
+    cost_saved_eur: Number(raw.cost_saved_eur || 0),
+    quality: raw.quality ||
+      memory.quality || { passed: 0, total: 10, score_pct: 0, details: [] },
+  };
+}
+
+function setStatusPill(message, online = true) {
+  const pill = document.getElementById("status-pill");
+  if (!pill) return;
+  pill.classList.toggle("offline", !online);
+  pill.innerHTML = `<span class="status-dot"></span> ${message}`;
+}
+
+function showImportDemoBanner(type, fileName, meta = "") {
+  state.importSource = { type, fileName };
+  const banner = document.getElementById("import-demo-banner");
+  const badge = document.getElementById("import-demo-badge");
+  const title = document.getElementById("import-demo-title");
+  const metaEl = document.getElementById("import-demo-meta");
+  const eyebrow = document.getElementById("topbar-eyebrow");
+
+  if (banner) banner.hidden = false;
+  if (badge) {
+    badge.textContent = type === "live" ? "Démo live importée" : "Démo benchmark importée";
+    badge.style.background = type === "live" ? "var(--memory)" : "var(--accent)";
+  }
+  if (title) title.textContent = fileName;
+  if (metaEl) {
+    metaEl.textContent =
+      meta ||
+      (type === "live"
+        ? "Mode démonstration : métriques live et courbes issues de ce fichier JSON."
+        : "Mode démonstration : KPIs, graphiques et pièges issus de ce fichier JSON.");
+  }
+  if (eyebrow) {
+    eyebrow.textContent = type === "live" ? "Démo · Live importé" : "Démo · Benchmark importé";
+  }
+}
+
+function clearImportDemoBanner() {
+  state.importSource = null;
+  const banner = document.getElementById("import-demo-banner");
+  if (banner) banner.hidden = true;
+  updateTopbar(state.activePanel);
+}
+
+async function restoreLocalReport() {
+  clearImportDemoBanner();
+  await loadReport(true);
+  showToast("Rapport local rechargé");
+}
+
+function importBenchmarkReport(raw, fileName) {
+  state.data = normalizeBenchmarkReport(raw);
+  state.chartSizes = {};
+  updateHero(state.data, true);
+  const pct = state.data.savings_pct;
+  const turns = state.data.memory?.turns || state.data.naive?.turns || 0;
+  showImportDemoBanner(
+    "benchmark",
+    fileName,
+    `Démo benchmark · ${pct}% économie · ${fmt(turns)} tours simulés.`
+  );
+  setStatusPill(`Démo · ${fileName}`);
+  redrawChartsForPanel(state.activePanel);
+  showToast(`Démo benchmark — ${fileName}`);
+}
+
+function importLiveReport(raw, fileName) {
+  state.live = raw;
+  updateLivePanel(raw);
+  const pct = raw.savings?.savings_pct;
+  const turns = raw.savings?.turns || 0;
+  showImportDemoBanner(
+    "live",
+    fileName,
+    pct != null
+      ? `Démo live · ${pct}% économie · ${fmt(turns)} tours enregistrés.`
+      : "Démo live : données MCP importées depuis ce fichier."
+  );
+  setStatusPill(`Démo live · ${fileName}`);
+  switchPanel("live");
+  showToast(`Démo live — ${fileName}`);
+}
+
 function importReport(file) {
+  const input = document.getElementById("import-json");
+  if (!file) return;
+
+  const name = file.name.toLowerCase();
+  if (!name.endsWith(".json")) {
+    showToast("Sélectionnez un fichier .json");
+    if (input) input.value = "";
+    return;
+  }
+
+  if (file.size > IMPORT_MAX_BYTES) {
+    showToast("Fichier trop volumineux (max 5 Mo)");
+    if (input) input.value = "";
+    return;
+  }
+
   const reader = new FileReader();
+
+  reader.onerror = () => {
+    showToast("Impossible de lire le fichier");
+    if (input) input.value = "";
+  };
+
   reader.onload = () => {
     try {
-      state.data = JSON.parse(reader.result);
-      updateHero(state.data, true);
-      showToast("Rapport importé");
+      const raw = JSON.parse(reader.result);
+      const kind = detectImportType(raw);
+
+      if (kind === "benchmark") {
+        importBenchmarkReport(raw, file.name);
+      } else if (kind === "live") {
+        importLiveReport(raw, file.name);
+      } else {
+        showToast("Format non reconnu — utilisez report.json ou live.json");
+      }
     } catch {
-      showToast("Fichier JSON invalide");
+      showToast("JSON invalide — vérifiez le fichier");
+    } finally {
+      if (input) input.value = "";
     }
   };
-  reader.readAsText(file);
+
+  reader.readAsText(file, "utf-8");
 }
 
 async function runLiveSimulation() {
@@ -829,7 +1001,7 @@ function bindEvents() {
     btn.addEventListener("click", () => switchPanel(btn.dataset.panel));
   });
 
-  document.getElementById("reload").addEventListener("click", () => loadReport(true));
+  document.getElementById("reload").addEventListener("click", restoreLocalReport);
   document.getElementById("theme-toggle").addEventListener("click", () => {
     setTheme(state.theme === "dark" ? "light" : "dark");
   });
@@ -839,6 +1011,7 @@ function bindEvents() {
     const file = event.target.files?.[0];
     if (file) importReport(file);
   });
+  document.getElementById("import-demo-clear").addEventListener("click", restoreLocalReport);
   document.getElementById("trap-filter").addEventListener("input", () => {
     if (state.data) renderTraps(state.data.quality?.details || state.data.memory?.quality?.details || []);
   });
