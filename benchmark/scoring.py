@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from memory_mcp.context_metrics import per_turn_context_tokens
 from memory_mcp.tools import MemoryTools
 from memory_mcp.validation import top1_contains
 
