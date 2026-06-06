@@ -1,0 +1,12 @@
+[
+  {"turn": 1, "role": "user", "content": "Bonjour, je suis Marie Dupont, cliente premium chez TechCorp."},
+  {"turn": 2, "role": "assistant", "content": "Bonjour Marie, comment puis-je vous aider aujourd'hui ?"},
+  {"turn": 3, "role": "user", "content": "Mon numéro de contrat est CTR-2024-8847."},
+  {"turn": 4, "role": "assistant", "content": "Contrat CTR-2024-8847 noté. Quel est votre problème ?"},
+  {"turn": 5, "role": "user", "content": "Ma facture de mars affiche 149,90 € au lieu de 99,90 €."},
+  {"turn": 6, "role": "assistant", "content": "Je vais vérifier l'écart de 50 € sur votre facture de mars."},
+  {"turn": 7, "role": "user", "content": "J'ai aussi signalé un bug sur l'app mobile le 12 février."},
+  {"turn": 8, "role": "assistant", "content": "Ticket bug mobile du 12/02 enregistré."},
+  {"turn": 9, "role": "user", "content": "Mon email de contact est marie.dupont@email.fr."},
+  {"turn": 10, "role": "assistant", "content": "Email marie.dupont@email.fr confirmé."}
+]
